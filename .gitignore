@@ -14,3 +14,7 @@ backend/*.class
 
 # Guía de referencia
 frontend-guide/
+
+# Docker
+.dockerignore
+
