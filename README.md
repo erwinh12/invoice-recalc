@@ -14,21 +14,38 @@ invoice-recalc/
 │       ├── dto/           InvoiceDto.java
 │       ├── exception/     GlobalExceptionHandler.java + custom exceptions
 │       └── config/        DataInitializer.java
-└── frontend-guide/        ← Archivos Angular (copiar a tu proyecto)
-    ├── invoice.service.ts
-    ├── invoice-recalc.component.ts
-    └── invoice-recalc.component.html
+└── frontend/              ← Angular 19 + PrimeFlex
+    └── src/app/components/
+        ├── invoice-select/    Selección de factura
+        ├── invoice-recalc/    Contenedor principal
+        └── recalc-section/    Formulario y tabla de recálculo
 ```
 
 ---
 
-## Backend — Cómo ejecutar
+## Levantar con Docker (recomendado)
 
 ### Requisitos
-- Java 17+
-- Maven 3.8+
+- Docker + Docker Compose
 
-### Ejecutar
+```bash
+docker-compose up --build
+```
+
+| Servicio   | URL                         |
+|------------|-----------------------------|
+| Frontend   | http://localhost:4200       |
+| Backend    | http://localhost:8080       |
+| H2 Console | http://localhost:8080/h2-console |
+
+---
+
+## Levantar manualmente
+
+### Backend
+
+**Requisitos:** Java 17+, Maven 3.8+
+
 ```bash
 cd backend
 mvn spring-boot:run
@@ -36,10 +53,22 @@ mvn spring-boot:run
 
 El servidor inicia en `http://localhost:8080`
 
-### H2 Console (debug BD)
-http://localhost:8080/h2-console
+**H2 Console (debug BD):**
+- URL: http://localhost:8080/h2-console
 - JDBC URL: `jdbc:h2:mem:invoicedb`
 - User: `sa` / Password: (vacío)
+
+### Frontend
+
+**Requisitos:** Node 18+, Angular CLI
+
+```bash
+cd frontend
+npm install
+ng serve
+```
+
+La app inicia en `http://localhost:4200`
 
 ---
 
@@ -95,35 +124,6 @@ http://localhost:8080/h2-console
 | Factura no encontrada | 404 Not Found |
 | Límite excedido | 422 Unprocessable Entity |
 | Error interno | 500 Internal Server Error |
-
----
-
-## Frontend — Cómo integrar
-
-### Requisitos
-```bash
-ng new invoice-app --routing --style=scss
-cd invoice-app
-```
-
-### Instalar dependencias
-```bash
-npm install  # Tailwind CSS es opcional, usa clases de Bootstrap o estilos propios
-```
-
-### Pasos de integración
-1. Copia `invoice.service.ts` → `src/app/services/`
-2. Crea componente: `ng generate component components/invoice-recalc`
-3. Reemplaza los archivos `.ts` y `.html` generados con los del `frontend-guide/`
-4. En `app.module.ts` importa `HttpClientModule`, `ReactiveFormsModule`, `CommonModule`
-5. Agrega el componente en tu `app.component.html`: `<app-invoice-recalc></app-invoice-recalc>`
-
-### app.module.ts (imports necesarios)
-```typescript
-import { HttpClientModule } from '@angular/common/http';
-import { ReactiveFormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-```
 
 ---
 

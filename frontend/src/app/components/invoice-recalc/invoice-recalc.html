@@ -18,11 +18,10 @@
     </div>
   </header>
 
-  <main class="main-content">
-    <div class="flex flex-column md:flex-row align-items-start gap-4">
+  <div class="app-layout">
 
+    <aside class="invoice-sidebar">
       <app-invoice-select
-        class="sidebar-col"
         [invoices]="invoices"
         [loading]="loadingInvoices"
         [error]="invoiceLoadError"
@@ -31,15 +30,26 @@
         (invoiceSelected)="selectInvoice($event)"
         (retry)="loadInvoices()"
       />
+    </aside>
 
+    <main class="invoice-main">
       <app-recalc-section
         *ngIf="selectedInvoice"
-        class="flex flex-column gap-4 flex-1 min-w-0"
+        class="recalc-section-host"
         [invoice]="selectedInvoice"
         (confirmed)="onConfirmed($event)"
       />
+      <div *ngIf="!selectedInvoice" class="select-prompt">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <path d="M9 12h6M9 16h4"/>
+        </svg>
+        <p class="select-prompt__title">Selecciona una factura</p>
+        <p class="select-prompt__desc">Elige una factura del listado para ver el detalle y recalcular sus valores.</p>
+      </div>
+    </main>
 
-    </div>
-  </main>
+  </div>
 
 </div>

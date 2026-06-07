@@ -1,5 +1,5 @@
 import {
-  Component, Input, Output, EventEmitter,
+  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges,
   OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -23,7 +23,7 @@ const LIMITS: Record<UserType, number> = { TIPO_A: 20000, TIPO_B: 50000 };
   templateUrl: './recalc-section.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RecalcSectionComponent implements OnInit, OnDestroy {
+export class RecalcSectionComponent implements OnInit, OnChanges, OnDestroy {
   @Input() invoice!: Invoice;
   @Output() confirmed = new EventEmitter<Invoice>();
 
@@ -33,7 +33,7 @@ export class RecalcSectionComponent implements OnInit, OnDestroy {
   previewLoading = false;
   errorMessage = '';
   successMessage = '';
-  showDetail = false;
+  showModal = false;
 
   readonly userTypes: { label: string; value: UserType; limit: number }[] = [
     { label: 'Tipo A — Operador', value: 'TIPO_A', limit: 20000 },
@@ -54,6 +54,29 @@ export class RecalcSectionComponent implements OnInit, OnDestroy {
       userType: ['TIPO_A', Validators.required]
     });
     this.setupLivePreview();
+    this.loadInitialPreview();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['invoice'] && !changes['invoice'].firstChange && this.recalcForm) {
+      this.recalcForm.patchValue({ newSubtotal: null }, { emitEvent: false });
+      this.loadInitialPreview();
+    }
+  }
+
+  private loadInitialPreview(): void {
+    this.previewLoading = true;
+    this.preview = null;
+    this.cdr.markForCheck();
+    this.invoiceService.preview(this.invoice.id, {
+      newSubtotal: this.invoice.subtotal,
+      userType: this.recalcForm.get('userType')?.value ?? 'TIPO_A'
+    }).pipe(
+      tap(result => { this.preview = result; }),
+      catchError(() => EMPTY),
+      finalize(() => { this.previewLoading = false; this.cdr.markForCheck(); }),
+      takeUntil(this.destroy$)
+    ).subscribe();
   }
 
   ngOnDestroy(): void {
@@ -103,19 +126,28 @@ export class RecalcSectionComponent implements OnInit, OnDestroy {
 
     this.invoiceService.confirm(this.invoice.id, this.recalcForm.value).pipe(
       tap(updated => {
-        this.preview = null;
         this.successMessage = `Factura ${updated.invoiceNumber} actualizada correctamente.`;
+        this.errorMessage = '';
+        this.showModal = true;
+        this.recalcForm.patchValue({ newSubtotal: null }, { emitEvent: false });
         this.confirmed.emit(updated);
         this.cdr.markForCheck();
       }),
       catchError(err => {
         this.errorMessage = err.error?.message || 'Error al confirmar el recálculo.';
+        this.successMessage = '';
+        this.showModal = true;
         this.cdr.markForCheck();
         return EMPTY;
       }),
       finalize(() => { this.loading = false; this.cdr.markForCheck(); }),
       takeUntil(this.destroy$)
     ).subscribe();
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.cdr.markForCheck();
   }
 
   formatCurrency(value: number): string {

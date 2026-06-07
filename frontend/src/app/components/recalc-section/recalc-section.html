@@ -1,204 +1,219 @@
-<!-- STEP 2: Formulario -->
-<section class="card">
-  <div class="flex align-items-center gap-3 mb-4">
-    <div class="step-badge">2</div>
-    <h2 class="card-title">
-      Recalcular — <span class="highlight">{{ invoice.invoiceNumber }}</span>
-    </h2>
-    <button type="button" class="detail-toggle" (click)="showDetail = !showDetail">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline *ngIf="showDetail"  points="18 15 12 9 6 15"/>
-        <polyline *ngIf="!showDetail" points="6 9 12 15 18 9"/>
-      </svg>
-      {{ showDetail ? 'Ocultar detalle' : 'Ver detalle' }}
-    </button>
-  </div>
+<div class="cards-cols">
 
-  <app-invoice-table
-    *ngIf="showDetail"
-    [rows]="invoice.details"
-    [footerLabel]="'Subtotal actual'"
-    [footerValue]="invoice.subtotal"
-  />
-
-  <form [formGroup]="recalcForm" (ngSubmit)="confirmRecalculation()" class="recalc-form">
-
-    <!-- Sub-paso 1: Tipo de usuario -->
-    <div class="sub-step">
-      <div class="flex align-items-center gap-2 mb-3">
-        <span class="sub-step__num">1</span>
-        <span class="sub-step__title">Tipo de usuario</span>
-      </div>
-      <div class="flex flex-column gap-2">
-        <label *ngFor="let ut of userTypes" class="user-type-option"
-               [class.user-type-option--selected]="recalcForm.get('userType')?.value === ut.value">
-          <input type="radio" formControlName="userType" [value]="ut.value" class="sr-only"/>
-          <div class="user-type-option__indicator"></div>
-          <div class="user-type-option__text">
-            <span class="user-type-option__name">{{ ut.label }}</span>
-            <span class="user-type-option__desc">Incremento máx. {{ formatCurrency(ut.limit) }}</span>
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <!-- Sub-paso 2: Nuevo subtotal -->
-    <div class="sub-step">
-      <div class="flex align-items-center gap-2 mb-3">
-        <span class="sub-step__num">2</span>
-        <span class="sub-step__title">Nuevo subtotal</span>
-        <span class="sub-step__ref">Actual: <strong>{{ formatCurrency(invoice.subtotal) }}</strong></span>
-      </div>
-
-      <div class="input-wrapper">
-        <span class="input-prefix">$</span>
-        <input type="number" formControlName="newSubtotal"
-               [placeholder]="invoice.subtotal"
-               class="form-input form-input--prefix form-input--lg"
-               [class.form-input--error]="incrementExceedsLimit"/>
-      </div>
-
-      <!-- Panel diferencia -->
-      <div *ngIf="increment !== 0" class="diff-panel"
-           [class.diff-panel--increase]="increment > 0 && !incrementExceedsLimit"
-           [class.diff-panel--decrease]="increment < 0"
-           [class.diff-panel--exceeded]="incrementExceedsLimit">
-        <div class="diff-panel__item">
-          <span class="diff-panel__label">Antes</span>
-          <span class="diff-panel__value">{{ formatCurrency(invoice.subtotal) }}</span>
-        </div>
-        <div class="diff-panel__arrow">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-          </svg>
-        </div>
-        <div class="diff-panel__item">
-          <span class="diff-panel__label">Nuevo</span>
-          <span class="diff-panel__value diff-panel__value--new">{{ formatCurrency(newSubtotalDisplay) }}</span>
-        </div>
-        <div class="diff-panel__sep"></div>
-        <div class="diff-panel__item diff-panel__item--right">
-          <span class="diff-panel__label">{{ increment > 0 ? 'Incremento' : 'Reducción' }}</span>
-          <span class="diff-panel__value diff-panel__value--diff">
-            {{ increment > 0 ? '+' : '' }}{{ formatCurrency(increment) }}
-          </span>
-          <span class="diff-panel__pct">{{ incrementPercent | number:'1.1-1' }}%</span>
-        </div>
-      </div>
-
-      <!-- Barra de cupo (incremento) -->
-      <div *ngIf="increment > 0" class="flex flex-column gap-1 mt-2">
-        <div class="limit-bar-track">
-          <div class="limit-bar-fill"
-               [class.limit-bar-fill--warning]="limitStatus === 'warning'"
-               [class.limit-bar-fill--exceeded]="limitStatus === 'exceeded'"
-               [style.width.%]="limitUsagePercent">
-          </div>
-        </div>
-        <span class="limit-bar-label" [class.limit-bar-label--exceeded]="incrementExceedsLimit">
-          <ng-container *ngIf="!incrementExceedsLimit">
-            Cupo disponible: {{ formatCurrency(remainingIncrement) }} de {{ formatCurrency(maxIncrement) }}
-          </ng-container>
-          <ng-container *ngIf="incrementExceedsLimit">
-            Excede el límite en {{ formatCurrency(increment - maxIncrement) }}
-          </ng-container>
-        </span>
-      </div>
-
-      <!-- Barra de reducción -->
-      <div *ngIf="increment < 0" class="flex flex-column gap-1 mt-2">
-        <div class="limit-bar-track">
-          <div class="limit-bar-fill limit-bar-fill--reduction"
-               [class.limit-bar-fill--reduction-warning]="reductionStatus === 'warning'"
-               [class.limit-bar-fill--reduction-critical]="reductionStatus === 'critical'"
-               [style.width.%]="reductionBarPercent">
-          </div>
-        </div>
-        <span class="limit-bar-label">
-          Quedará el {{ reductionBarPercent | number:'1.1-1' }}% del subtotal original
-        </span>
-      </div>
-    </div>
-
-    <div *ngIf="errorMessage" class="alert alert--error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      {{ errorMessage }}
-    </div>
-    <div *ngIf="successMessage" class="alert alert--success">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
-      {{ successMessage }}
-    </div>
-
-    <div class="flex gap-3 pt-4">
-      <button type="submit" class="btn btn--primary"
-              [disabled]="recalcForm.invalid || loading || incrementExceedsLimit">
-        <span *ngIf="loading" class="spinner spinner--sm"></span>
-        <svg *ngIf="!loading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-        {{ loading ? 'Guardando...' : 'Confirmar Recálculo' }}
-      </button>
-    </div>
-  </form>
-</section>
-
-<!-- STEP 3: Vista Previa -->
-<section *ngIf="preview || previewLoading" class="card">
-  <div class="flex align-items-center gap-3 mb-4">
-    <div class="step-badge step-badge--preview">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-      </svg>
-    </div>
-    <h2 class="card-title">Vista Previa del Recálculo</h2>
-    <span class="live-badge">En tiempo real</span>
-  </div>
-
-  <div *ngIf="previewLoading" class="loading-row flex align-items-center gap-2 py-2">
-    <div class="spinner"></div>
-    <span>Calculando...</span>
-  </div>
-
-  <div *ngIf="preview && !previewLoading">
-    <div class="grid mb-4">
-      <div class="col-6 md:col-3">
-        <div class="summary-item summary-item--neutral">
-          <span class="summary-item__label">Subtotal original</span>
-          <span class="summary-item__value">{{ formatCurrency(preview.originalSubtotal) }}</span>
-        </div>
-      </div>
-      <div class="col-6 md:col-3">
-        <div class="summary-item summary-item--blue">
-          <span class="summary-item__label">Nuevo subtotal</span>
-          <span class="summary-item__value">{{ formatCurrency(preview.newSubtotal) }}</span>
-        </div>
-      </div>
-      <div class="col-6 md:col-3">
-        <div class="summary-item summary-item--yellow">
-          <span class="summary-item__label">IVA ({{ preview.ivaPercentage }}%)</span>
-          <span class="summary-item__value">{{ formatCurrency(preview.newIvaAmount) }}</span>
-        </div>
-      </div>
-      <div class="col-6 md:col-3">
-        <div class="summary-item summary-item--green">
-          <span class="summary-item__label">Total nuevo</span>
-          <span class="summary-item__value">{{ formatCurrency(preview.newTotal) }}</span>
-        </div>
-      </div>
+  <!-- STEP 2: Formulario -->
+  <section class="card">
+    <div class="flex align-items-center gap-3 mb-4">
+      <div class="step-badge">2</div>
+      <h2 class="card-title">
+        Recalcular — <span class="highlight">{{ invoice.invoiceNumber }}</span>
+      </h2>
     </div>
 
     <app-invoice-table
-      [rows]="preview.recalculatedDetails"
-      [isPreview]="true"
-      [footerLabel]="'Nuevo subtotal'"
-      [footerValue]="preview.newSubtotal"
+      [rows]="invoice.details"
+      [footerLabel]="'Subtotal actual'"
+      [footerValue]="invoice.subtotal"
     />
 
-    <p class="preview-message">{{ preview.message }}</p>
+    <form id="recalc-form" [formGroup]="recalcForm" (ngSubmit)="confirmRecalculation()" class="recalc-form">
+      <!-- <div class="form-cols"> -->
+
+        <!-- Sub-paso 1: Tipo de usuario -->
+        <div class="sub-step">
+          <div class="flex align-items-center gap-2 mb-3">
+            <span class="sub-step__num">1</span>
+            <span class="sub-step__title">Tipo de usuario</span>
+          </div>
+          <div class="flex flex-column gap-2">
+            <label *ngFor="let ut of userTypes" class="user-type-option"
+                   [class.user-type-option--selected]="recalcForm.get('userType')?.value === ut.value">
+              <input type="radio" formControlName="userType" [value]="ut.value" class="sr-only"/>
+              <div class="user-type-option__indicator"></div>
+              <div class="user-type-option__text">
+                <span class="user-type-option__name">{{ ut.label }}</span>
+                <span class="user-type-option__desc">Incremento máx. {{ formatCurrency(ut.limit) }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sub-paso 2: Nuevo subtotal -->
+        <div class="sub-step">
+          <div class="flex align-items-center gap-2 mb-3">
+            <span class="sub-step__num">2</span>
+            <span class="sub-step__title">Nuevo subtotal</span>
+            <span class="sub-step__ref">Actual: <strong>{{ formatCurrency(invoice.subtotal) }}</strong></span>
+          </div>
+
+          <div class="input-wrapper">
+            <span class="input-prefix">$</span>
+            <input type="number" formControlName="newSubtotal"
+                   class="form-input form-input--prefix form-input--lg"
+                   [class.form-input--error]="incrementExceedsLimit"/>
+          </div>
+
+          <!-- Panel diferencia -->
+          <div *ngIf="increment !== 0" class="diff-panel"
+               [class.diff-panel--increase]="increment > 0 && !incrementExceedsLimit"
+               [class.diff-panel--decrease]="increment < 0"
+               [class.diff-panel--exceeded]="incrementExceedsLimit">
+            <div class="diff-panel__item">
+              <span class="diff-panel__label">Antes</span>
+              <span class="diff-panel__value">{{ formatCurrency(invoice.subtotal) }}</span>
+            </div>
+            <div class="diff-panel__arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+            <div class="diff-panel__item">
+              <span class="diff-panel__label">Nuevo</span>
+              <span class="diff-panel__value diff-panel__value--new">{{ formatCurrency(newSubtotalDisplay) }}</span>
+            </div>
+            <div class="diff-panel__sep"></div>
+            <div class="diff-panel__item diff-panel__item--right">
+              <span class="diff-panel__label">{{ increment > 0 ? 'Incremento' : 'Reducción' }}</span>
+              <span class="diff-panel__value diff-panel__value--diff">
+                {{ increment > 0 ? '+' : '' }}{{ formatCurrency(increment) }}
+              </span>
+              <span class="diff-panel__pct">{{ incrementPercent | number:'1.1-1' }}%</span>
+            </div>
+          </div>
+
+          <!-- Barra de cupo (incremento) -->
+          <div *ngIf="increment > 0" class="flex flex-column gap-1 mt-2">
+            <div class="limit-bar-track">
+              <div class="limit-bar-fill"
+                   [class.limit-bar-fill--warning]="limitStatus === 'warning'"
+                   [class.limit-bar-fill--exceeded]="limitStatus === 'exceeded'"
+                   [style.width.%]="limitUsagePercent">
+              </div>
+            </div>
+            <span class="limit-bar-label" [class.limit-bar-label--exceeded]="incrementExceedsLimit">
+              <ng-container *ngIf="!incrementExceedsLimit">
+                Cupo disponible: {{ formatCurrency(remainingIncrement) }} de {{ formatCurrency(maxIncrement) }}
+              </ng-container>
+              <ng-container *ngIf="incrementExceedsLimit">
+                Excede el límite en {{ formatCurrency(increment - maxIncrement) }}
+              </ng-container>
+            </span>
+          </div>
+
+          <!-- Barra de reducción -->
+          <div *ngIf="increment < 0" class="flex flex-column gap-1 mt-2">
+            <div class="limit-bar-track">
+              <div class="limit-bar-fill limit-bar-fill--reduction"
+                   [class.limit-bar-fill--reduction-warning]="reductionStatus === 'warning'"
+                   [class.limit-bar-fill--reduction-critical]="reductionStatus === 'critical'"
+                   [style.width.%]="reductionBarPercent">
+              </div>
+            </div>
+            <span class="limit-bar-label">
+              Quedará el {{ reductionBarPercent | number:'1.1-1' }}% del subtotal original
+            </span>
+          </div>
+        </div>
+
+      <!-- </div> -->
+    </form>
+  </section>
+
+  <!-- STEP 3: Vista Previa (siempre visible) -->
+  <section class="card">
+    <div class="flex align-items-center gap-3 mb-4">
+      <div class="step-badge step-badge--preview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Vista Previa del Recálculo</h2>
+      <span class="live-badge">En tiempo real</span>
+    </div>
+
+    <div *ngIf="previewLoading" class="loading-row flex align-items-center gap-2 py-2">
+      <div class="spinner"></div>
+      <span>Calculando...</span>
+    </div>
+
+    <!-- Placeholder cuando no hay preview -->
+    <div *ngIf="!preview && !previewLoading" class="preview-placeholder">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+      <p class="preview-placeholder__text">Ingresa un nuevo subtotal para ver la vista previa en tiempo real</p>
+    </div>
+
+    <div *ngIf="preview && !previewLoading">
+      <div class="grid mb-4">
+        <div class="col-6 md:col-3">
+          <div class="summary-item summary-item--neutral">
+            <span class="summary-item__label">Subtotal original</span>
+            <span class="summary-item__value">{{ formatCurrency(preview.originalSubtotal) }}</span>
+          </div>
+        </div>
+        <div class="col-6 md:col-3">
+          <div class="summary-item summary-item--blue">
+            <span class="summary-item__label">Nuevo subtotal</span>
+            <span class="summary-item__value">{{ formatCurrency(preview.newSubtotal) }}</span>
+          </div>
+        </div>
+        <div class="col-6 md:col-3">
+          <div class="summary-item summary-item--yellow">
+            <span class="summary-item__label">IVA ({{ preview.ivaPercentage }}%)</span>
+            <span class="summary-item__value">{{ formatCurrency(preview.newIvaAmount) }}</span>
+          </div>
+        </div>
+        <div class="col-6 md:col-3">
+          <div class="summary-item summary-item--green">
+            <span class="summary-item__label">Total nuevo</span>
+            <span class="summary-item__value">{{ formatCurrency(preview.newTotal) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <app-invoice-table
+        [rows]="preview.recalculatedDetails"
+        [isPreview]="true"
+        [footerLabel]="'Nuevo subtotal'"
+        [footerValue]="preview.newSubtotal"
+      />
+
+      <p class="preview-message">{{ preview.message }}</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- Barra de acción: sticky al fondo del panel -->
+<div class="action-bar">
+  <button type="submit" form="recalc-form" class="btn btn--primary"
+          [disabled]="recalcForm.invalid || loading || incrementExceedsLimit">
+    <span *ngIf="loading" class="spinner spinner--sm"></span>
+    <svg *ngIf="!loading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    {{ loading ? 'Guardando...' : 'Confirmar Recálculo' }}
+  </button>
+</div>
+
+<!-- Modal emergente -->
+<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <div *ngIf="successMessage" class="modal-icon modal-icon--success">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div *ngIf="errorMessage" class="modal-icon modal-icon--error">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+
+    <p class="modal-title">{{ successMessage ? '¡Listo!' : 'Error' }}</p>
+    <p class="modal-message">{{ successMessage || errorMessage }}</p>
+
+    <button class="btn btn--primary" (click)="closeModal()">Aceptar</button>
   </div>
-</section>
+</div>
