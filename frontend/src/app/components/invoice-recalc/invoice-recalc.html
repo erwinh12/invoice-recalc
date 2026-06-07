@@ -1,8 +1,8 @@
 <div class="page">
 
   <header class="page-header">
-    <div class="header-inner">
-      <div class="header-brand">
+    <div class="header-inner flex align-items-center">
+      <div class="flex align-items-center gap-3">
         <div class="brand-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
@@ -19,275 +19,27 @@
   </header>
 
   <main class="main-content">
+    <div class="flex flex-column md:flex-row align-items-start gap-4">
 
-    <!-- STEP 1: Seleccionar Factura -->
-    <section class="card">
-      <div class="card-header">
-        <div class="step-badge">1</div>
-        <h2 class="card-title">Seleccionar Factura</h2>
-      </div>
+      <app-invoice-select
+        class="sidebar-col"
+        [invoices]="invoices"
+        [loading]="loadingInvoices"
+        [error]="invoiceLoadError"
+        [selected]="selectedInvoice"
+        [skeletons]="skeletons"
+        (invoiceSelected)="selectInvoice($event)"
+        (retry)="loadInvoices()"
+      />
 
-      <!-- Skeleton loading -->
-      <div *ngIf="loadingInvoices" class="invoice-grid">
-        <div *ngFor="let s of skeletons" class="skeleton-card">
-          <div class="skeleton-line skeleton-line--title"></div>
-          <div class="skeleton-line skeleton-line--subtitle"></div>
-          <div class="skeleton-amounts">
-            <div class="skeleton-block"></div>
-            <div class="skeleton-block"></div>
-            <div class="skeleton-block"></div>
-          </div>
-        </div>
-      </div>
+      <app-recalc-section
+        *ngIf="selectedInvoice"
+        class="flex flex-column gap-4 flex-1 min-w-0"
+        [invoice]="selectedInvoice"
+        (confirmed)="onConfirmed($event)"
+      />
 
-      <!-- Error state -->
-      <div *ngIf="invoiceLoadError" class="error-state">
-        <div class="error-state__icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <p class="error-state__title">No se pudo cargar las facturas</p>
-        <p class="error-state__desc">Asegúrate de que el backend esté corriendo en <code>localhost:8080</code></p>
-        <button class="btn btn--retry" (click)="loadInvoices()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-          Reintentar
-        </button>
-      </div>
-
-      <!-- Empty state -->
-      <div *ngIf="!loadingInvoices && !invoiceLoadError && invoices.length === 0" class="empty-state">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
-          <rect x="9" y="3" width="6" height="4" rx="1"/>
-        </svg>
-        <span>No hay facturas disponibles</span>
-      </div>
-
-      <div *ngIf="!loadingInvoices && !invoiceLoadError && invoices.length > 0" class="invoice-grid">
-        <div *ngFor="let inv of invoices"
-             (click)="selectInvoice(inv)"
-             class="invoice-card"
-             [class.invoice-card--selected]="selectedInvoice?.id === inv.id">
-          <div class="invoice-card__top">
-            <div>
-              <p class="invoice-number">{{ inv.invoiceNumber }}</p>
-              <p class="invoice-customer">{{ inv.customerName }}</p>
-            </div>
-            <span class="badge">{{ inv.details.length }} productos</span>
-          </div>
-          <div class="invoice-card__amounts">
-            <div class="amount-item">
-              <span class="amount-label">Subtotal</span>
-              <span class="amount-value">{{ formatCurrency(inv.subtotal) }}</span>
-            </div>
-            <div class="amount-item">
-              <span class="amount-label">IVA {{ inv.ivaPercentage }}%</span>
-              <span class="amount-value">{{ formatCurrency(inv.ivaAmount) }}</span>
-            </div>
-            <div class="amount-item">
-              <span class="amount-label">Total</span>
-              <span class="amount-value amount-value--highlight">{{ formatCurrency(inv.total) }}</span>
-            </div>
-          </div>
-          <div *ngIf="selectedInvoice?.id === inv.id" class="invoice-card__check">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- STEP 2: Formulario -->
-    <section *ngIf="selectedInvoice" class="card">
-      <div class="card-header">
-        <div class="step-badge">2</div>
-        <h2 class="card-title">
-          Recalcular — <span class="highlight">{{ selectedInvoice.invoiceNumber }}</span>
-        </h2>
-      </div>
-
-      <p class="section-label">Detalle actual</p>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th class="text-center">Cant.</th>
-              <th class="text-right">P. Unitario</th>
-              <th class="text-right">Total línea</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let d of selectedInvoice.details">
-              <td>{{ d.productName }}</td>
-              <td class="text-center">{{ d.quantity }}</td>
-              <td class="text-right">{{ formatCurrency(d.unitPrice) }}</td>
-              <td class="text-right font-medium">{{ formatCurrency(d.lineTotal) }}</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3" class="text-right font-semibold">Subtotal actual</td>
-              <td class="text-right font-semibold text-primary">{{ formatCurrency(selectedInvoice.subtotal) }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <form [formGroup]="recalcForm" (ngSubmit)="confirmRecalculation()" class="recalc-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Nuevo Subtotal General</label>
-            <div class="input-wrapper">
-              <span class="input-prefix">$</span>
-              <input type="number" formControlName="newSubtotal" placeholder="0.00"
-                     class="form-input form-input--prefix"
-                     [class.form-input--error]="incrementExceedsLimit"/>
-            </div>
-
-            <!-- Indicador de incremento/reducción -->
-            <div *ngIf="increment !== 0" class="increment-row">
-              <span class="increment-hint" [class.increment-hint--up]="increment > 0 && !incrementExceedsLimit" [class.increment-hint--down]="increment < 0" [class.increment-hint--exceeded]="incrementExceedsLimit">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <path *ngIf="increment > 0" d="M12 4l8 16H4z"/>
-                  <path *ngIf="increment < 0" d="M12 20l-8-16h16z"/>
-                </svg>
-                {{ increment > 0 ? 'Incremento' : 'Reducción' }}: {{ formatCurrency(Math.abs(increment)) }}
-              </span>
-            </div>
-
-            <!-- Barra de límite (solo en incremento) -->
-            <div *ngIf="increment > 0" class="limit-bar-wrapper">
-              <div class="limit-bar-track">
-                <div class="limit-bar-fill"
-                     [class.limit-bar-fill--warning]="limitStatus === 'warning'"
-                     [class.limit-bar-fill--exceeded]="limitStatus === 'exceeded'"
-                     [style.width.%]="limitUsagePercent">
-                </div>
-              </div>
-              <span class="limit-bar-label" [class.limit-bar-label--exceeded]="incrementExceedsLimit">
-                <ng-container *ngIf="!incrementExceedsLimit">
-                  Disponible: {{ formatCurrency(remainingIncrement) }} de {{ formatCurrency(maxIncrement) }}
-                </ng-container>
-                <ng-container *ngIf="incrementExceedsLimit">
-                  Excede el límite por {{ formatCurrency(increment - maxIncrement) }}
-                </ng-container>
-              </span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Tipo de Usuario</label>
-            <div class="user-type-options">
-              <label *ngFor="let ut of userTypes" class="user-type-option" [class.user-type-option--selected]="recalcForm.get('userType')?.value === ut.value">
-                <input type="radio" formControlName="userType" [value]="ut.value" class="sr-only"/>
-                <div class="user-type-option__indicator"></div>
-                <div class="user-type-option__text">
-                  <span class="user-type-option__name">{{ ut.label }}</span>
-                  <span class="user-type-option__desc">Incremento máx. {{ formatCurrency(ut.limit) }}</span>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="errorMessage" class="alert alert--error">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          {{ errorMessage }}
-        </div>
-        <div *ngIf="successMessage" class="alert alert--success">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          {{ successMessage }}
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary" [disabled]="recalcForm.invalid || loading || incrementExceedsLimit">
-            <span *ngIf="loading" class="spinner spinner--sm"></span>
-            <svg *ngIf="!loading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            {{ loading ? 'Guardando...' : 'Confirmar Recálculo' }}
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <!-- STEP 3: Vista Previa -->
-    <section *ngIf="selectedInvoice && (preview || previewLoading)" class="card">
-      <div class="card-header">
-        <div class="step-badge step-badge--preview">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-          </svg>
-        </div>
-        <h2 class="card-title">Vista Previa del Recálculo</h2>
-        <span class="live-badge">En tiempo real</span>
-      </div>
-
-      <div *ngIf="previewLoading" class="loading-row">
-        <div class="spinner"></div>
-        <span>Calculando...</span>
-      </div>
-
-      <div *ngIf="preview && !previewLoading">
-        <div class="summary-grid">
-          <div class="summary-item summary-item--neutral">
-            <span class="summary-item__label">Subtotal original</span>
-            <span class="summary-item__value">{{ formatCurrency(preview.originalSubtotal) }}</span>
-          </div>
-          <div class="summary-item summary-item--blue">
-            <span class="summary-item__label">Nuevo subtotal</span>
-            <span class="summary-item__value">{{ formatCurrency(preview.newSubtotal) }}</span>
-          </div>
-          <div class="summary-item summary-item--yellow">
-            <span class="summary-item__label">IVA ({{ preview.ivaPercentage }}%)</span>
-            <span class="summary-item__value">{{ formatCurrency(preview.newIvaAmount) }}</span>
-          </div>
-          <div class="summary-item summary-item--green">
-            <span class="summary-item__label">Total nuevo</span>
-            <span class="summary-item__value">{{ formatCurrency(preview.newTotal) }}</span>
-          </div>
-        </div>
-
-        <div class="table-wrapper">
-          <table class="data-table data-table--preview">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th class="text-center">Cant.</th>
-                <th class="text-right">Nuevo P. Unitario</th>
-                <th class="text-right">Nuevo Total línea</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let d of preview.recalculatedDetails">
-                <td>{{ d.productName }}</td>
-                <td class="text-center">{{ d.quantity }}</td>
-                <td class="text-right">{{ formatCurrency(d.unitPrice) }}</td>
-                <td class="text-right font-semibold text-primary">{{ formatCurrency(d.lineTotal) }}</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" class="text-right font-semibold">Nuevo subtotal</td>
-                <td class="text-right font-semibold text-primary">{{ formatCurrency(preview.newSubtotal) }}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <p class="preview-message">{{ preview.message }}</p>
-      </div>
-    </section>
-
+    </div>
   </main>
+
 </div>

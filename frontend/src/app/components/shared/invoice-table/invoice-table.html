@@ -1,0 +1,31 @@
+<div class="table-wrapper">
+  <table class="data-table" [class.data-table--preview]="isPreview">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th class="text-center">Cant.</th>
+        <th class="text-right">{{ isPreview ? 'Nuevo P. Unitario' : 'P. Unitario' }}</th>
+        <th class="text-right">{{ isPreview ? 'Nuevo Total línea' : 'Total línea' }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let d of rows">
+        <td>{{ d.productName }}</td>
+        <td class="text-center">{{ d.quantity }}</td>
+        <td class="text-right">{{ formatCurrency(d.unitPrice) }}</td>
+        <td class="text-right"
+            [class.font-medium]="!isPreview"
+            [class.font-semibold]="isPreview"
+            [class.text-primary]="isPreview">
+          {{ formatCurrency(d.lineTotal) }}
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="text-right font-semibold">{{ footerLabel }}</td>
+        <td class="text-right font-semibold text-primary">{{ formatCurrency(footerValue) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>

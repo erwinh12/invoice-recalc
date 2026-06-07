@@ -50,30 +50,5 @@ public class DataInitializer implements CommandLineRunner {
         details1.add(d1); details1.add(d2); details1.add(d3);
         inv1.setDetails(details1);
         invoiceRepository.save(inv1);
-
-        Invoice inv2 = new Invoice();
-        inv2.setInvoiceNumber("FAC-002");
-        inv2.setCustomerName("Distribuciones XYZ Ltda");
-        inv2.setSubtotal(new BigDecimal("120000.00"));
-        inv2.setIvaPercentage(new BigDecimal("19.00"));
-        inv2.setIvaAmount(new BigDecimal("22800.00"));
-        inv2.setTotal(new BigDecimal("142800.00"));
-
-        InvoiceDetail d4 = new InvoiceDetail();
-        d4.setInvoice(inv2); d4.setProductName("Monitor 27 pulgadas");
-        d4.setQuantity(2); d4.setUnitPrice(new BigDecimal("35000.00")); d4.setLineTotal(new BigDecimal("70000.00"));
-
-        InvoiceDetail d5 = new InvoiceDetail();
-        d5.setInvoice(inv2); d5.setProductName("Silla Ergonómica");
-        d5.setQuantity(1); d5.setUnitPrice(new BigDecimal("30000.00")); d5.setLineTotal(new BigDecimal("30000.00"));
-
-        InvoiceDetail d6 = new InvoiceDetail();
-        d6.setInvoice(inv2); d6.setProductName("Escritorio de Pie");
-        d6.setQuantity(1); d6.setUnitPrice(new BigDecimal("20000.00")); d6.setLineTotal(new BigDecimal("20000.00"));
-
-        List<InvoiceDetail> details2 = new ArrayList<>();
-        details2.add(d4); details2.add(d5); details2.add(d6);
-        inv2.setDetails(details2);
-        invoiceRepository.save(inv2);
     }
 }

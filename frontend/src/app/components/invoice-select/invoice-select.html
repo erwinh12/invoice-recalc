@@ -1,0 +1,85 @@
+<section class="card">
+  <div class="flex align-items-center gap-3 mb-4">
+    <div class="step-badge">1</div>
+    <h2 class="card-title">Seleccionar Factura</h2>
+  </div>
+
+  <!-- Skeleton loading -->
+  <div *ngIf="loading" class="grid">
+    <div *ngFor="let s of skeletons" class="col-12 md:col-6">
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-line--title"></div>
+        <div class="skeleton-line skeleton-line--subtitle"></div>
+        <div class="skeleton-amounts flex gap-2">
+          <div class="flex-1 skeleton-block"></div>
+          <div class="flex-1 skeleton-block"></div>
+          <div class="flex-1 skeleton-block"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error" class="error-state flex flex-column align-items-center gap-3 py-5 text-center">
+    <div class="error-state__icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <p class="error-state__title">No se pudo cargar las facturas</p>
+    <p class="error-state__desc">Asegúrate de que el backend esté corriendo en <code>localhost:8080</code></p>
+    <button class="btn btn--retry" (click)="retry.emit()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && invoices.length === 0"
+       class="empty-state flex flex-column align-items-center gap-2 py-5">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+      <rect x="9" y="3" width="6" height="4" rx="1"/>
+    </svg>
+    <span>No hay facturas disponibles</span>
+  </div>
+
+  <!-- Invoice grid -->
+  <div *ngIf="!loading && !error && invoices.length > 0" class="grid">
+    <div *ngFor="let inv of invoices" class="col-12 md:col-6">
+      <div (click)="invoiceSelected.emit(inv)"
+           class="invoice-card"
+           [class.invoice-card--selected]="selected?.id === inv.id">
+        <div class="flex justify-content-between align-items-start mb-3">
+          <div>
+            <p class="invoice-number">{{ inv.invoiceNumber }}</p>
+            <p class="invoice-customer">{{ inv.customerName }}</p>
+          </div>
+          <span class="badge">{{ inv.details.length }} productos</span>
+        </div>
+        <div class="invoice-card__amounts flex gap-2">
+          <div class="flex-1 amount-item">
+            <span class="amount-label">Subtotal</span>
+            <span class="amount-value">{{ formatCurrency(inv.subtotal) }}</span>
+          </div>
+          <div class="flex-1 amount-item">
+            <span class="amount-label">IVA {{ inv.ivaPercentage }}%</span>
+            <span class="amount-value">{{ formatCurrency(inv.ivaAmount) }}</span>
+          </div>
+          <div class="flex-1 amount-item">
+            <span class="amount-label">Total</span>
+            <span class="amount-value amount-value--highlight">{{ formatCurrency(inv.total) }}</span>
+          </div>
+        </div>
+        <div *ngIf="selected?.id === inv.id" class="invoice-card__check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
